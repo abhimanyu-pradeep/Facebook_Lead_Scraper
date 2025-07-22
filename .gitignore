@@ -1,0 +1,3 @@
+*.csv
+lookups/
+__pycache__/

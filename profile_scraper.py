@@ -7,7 +7,7 @@ import time
 import os
 import asyncio
 from typing import Optional
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 import colorlog
 import logging
 
@@ -58,22 +58,22 @@ class FacebookPageInfoScraper:
         self.logger = logger
         self.log_list = log_list
 
-    async def scrape(self):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True, proxy={"server": self.proxy} if self.proxy else None)
-            context = await browser.new_context()
-            page = await context.new_page()
+    def scrape(self):
+        with sync_playwright() as p:
+            browser = p.firefox.launch(headless=False, proxy={"server": self.proxy} if self.proxy else None)
+            context = browser.new_context()
+            page = context.new_page()
 
             try:
                 self.logger.debug(f"Navigating to {self.link} with proxy {self.proxy or 'None'}")
-                self.log_list.append(f"Navigating to {self.link} with proxy {self.proxy or 'None'}")
-                await page.goto(self.link, timeout=30000)
-                await page.wait_for_selector("body", timeout=10000)
-                await self._close_login_popup(page)
+                self.log_list.put(f"Navigating to {self.link} with proxy {self.proxy or 'None'}")
+                page.goto(self.link, timeout=30000)
+                page.wait_for_selector("body", timeout=10000)
+                self._close_login_popup(page)
 
-                title = (await page.title()).replace(" | Facebook", "").strip()
-                followers = await self._fetch_followers_count(page)
-                contact_info = await self._extract_intro_section_info(page)
+                title = (page.title()).replace(" | Facebook", "").strip()
+                followers = self._fetch_followers_count(page)
+                contact_info = self._extract_intro_section_info(page)
 
                 data = {
                     "page_name": title,
@@ -85,46 +85,46 @@ class FacebookPageInfoScraper:
                 }
 
                 self.logger.info(f"Scraped data: {data}")
-                self.log_list.append(f"Scraped data: {data}")
+                self.log_list.put(f"Scraped data: {data}")
                 return data
 
             except Exception as e:
                 self.logger.error(f"Error scraping {self.link}: {e}")
-                self.log_list.append(f"Error scraping {self.link}: {e}")
+                self.log_list.put(f"Error scraping {self.link}: {e}")
                 return None
             finally:
-                await browser.close()
+                browser.close()
 
-    async def _close_login_popup(self, page):
+    def _close_login_popup(self, page):
         try:
             self.logger.debug("Checking for login popup...")
-            self.log_list.append("Checking for login popup...")
-            close_btn = await page.wait_for_selector("div[aria-label='Close']", timeout=5000)
-            await close_btn.click()
+            self.log_list.put("Checking for login popup...")
+            close_btn = page.wait_for_selector("div[aria-label='Close']", timeout=5000)
+            close_btn.click()
             self.logger.info("Login popup closed.")
-            self.log_list.append("Login popup closed.")
-            await page.wait_for_timeout(1000)
+            self.log_list.put("Login popup closed.")
+            page.wait_for_timeout(1000)
         except PlaywrightTimeoutError:
             self.logger.debug("No login popup detected.")
-            self.log_list.append("No login popup detected.")
+            self.log_list.put("No login popup detected.")
 
-    async def _fetch_followers_count(self, page) -> str:
-        spans = await page.query_selector_all("span")
+    def _fetch_followers_count(self, page) -> str:
+        spans = page.query_selector_all("span")
         for span in spans:
-            text = (await span.inner_text()).lower()
+            text = (span.inner_text()).lower()
             if "followers" in text:
                 return text.strip()
         return ""
 
-    async def _extract_intro_section_info(self, page):
+    def _extract_intro_section_info(self, page):
         phones, emails, websites = set(), set(), set()
         try:
-            elements = await page.query_selector_all("span.x193iq5w[dir='auto']")
+            elements = page.query_selector_all("span.x193iq5w[dir='auto']")
             self.logger.debug(f"Found {len(elements)} intro section span elements.")
-            self.log_list.append(f"Found {len(elements)} intro section span elements.")
+            self.log_list.put(f"Found {len(elements)} intro section span elements.")
 
             for el in elements:
-                text = (await el.inner_text()).strip()
+                text = (el.inner_text()).strip()
 
                 if re.fullmatch(r"[\d\s]{7,}", text):
                     phones.add(text)
@@ -137,7 +137,7 @@ class FacebookPageInfoScraper:
 
         except Exception as e:
             self.logger.warning(f"Intro section scraping issue: {e}")
-            self.log_list.append(f"Intro section scraping issue: {e}")
+            self.log_list.put(f"Intro section scraping issue: {e}")
 
         return {
             "phones": ", ".join(phones),
@@ -170,7 +170,7 @@ class FacebookPageInfoScraper:
 #             if scraped_data:
 #                 writer.writerow(scraped_data)
 
-async def process_csv_and_scrape(data_directory:str,logger,log_list):
+def process_csv_and_scrape(data_directory:str,logger,log_list):
     # Read input CSV with pandas
     df_input = pd.read_csv(f"{data_directory}/links.csv")
 
@@ -183,11 +183,11 @@ async def process_csv_and_scrape(data_directory:str,logger,log_list):
             continue
 
         logger.info(f"Scraping URL: {url}")
-        log_list.append(f"Scraping URL: {url}")
+        log_list.put(f"Scraping URL: {url}")
         proxy = get_random_proxy()
 
-        scraper = FacebookPageInfoScraper(url, proxy,logger=logger,log_list=log_list)
-        scraped_data = await scraper.scrape()
+        scraper = FacebookPageInfoScraper(link=url, proxy = proxy,logger=logger,log_list=log_list)
+        scraped_data = scraper.scrape()
 
         if scraped_data:
             output_data.append(scraped_data)
@@ -203,7 +203,7 @@ async def process_csv_and_scrape(data_directory:str,logger,log_list):
     df_output.to_excel(f"{data_directory}/leads.xlsx", index=False)
 
     logger.info(f"Done .... Scraped {len(df_output)} leads.")
-    log_list.append(f"Done .... Scraped {len(df_output)} leads.")
+    log_list.put(f"Done .... Scraped {len(df_output)} leads.")
 
 
 if __name__ == "__main__":

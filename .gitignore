@@ -1,3 +1,4 @@
 *.csv
 lookups/
 __pycache__/
+data/

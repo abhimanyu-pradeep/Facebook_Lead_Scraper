@@ -71,7 +71,9 @@ if st.button("Start Search"):
             except queue.Empty:
                 pass
             if not threading.active_count() > 1:  # Only one background thread running
+                render_logs(["Done ... ",])
                 break
             time.sleep(0.6)
+            
 
 

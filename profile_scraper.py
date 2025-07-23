@@ -11,6 +11,8 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 import colorlog
 import logging
 
+ALL_LEADS_CSV = "all_leads.csv"
+ALL_LEADS_XLSX = "all_leads.xlsx"
 
 def setup_logger(log_file="scraper.log"):
     logger = colorlog.getLogger("facebook_scraper")
@@ -71,22 +73,40 @@ class FacebookPageInfoScraper:
                 page.wait_for_selector("body", timeout=10000)
                 self._close_login_popup(page)
 
-                title = (page.title()).replace(" | Facebook", "").strip()
-                followers = self._fetch_followers_count(page)
                 contact_info = self._extract_intro_section_info(page)
 
+                title = (page.title()).replace(" | Facebook", "").strip()
+                followers = self._fetch_followers_count(page)
+                website = contact_info.get("websites", None)
+                email = contact_info.get("emails", None)
+                phone_number = contact_info.get("phones", None)
+
+                if phone_number and email and website:
+                    grade = "A"
+                elif phone_number and (email or website):
+                    grade = "B"
+                elif phone_number:
+                    grade = "C"
+                elif email and website:
+                    grade = "D"
+                elif email or website:
+                    grade = "E"
+                else:
+                    grade = "F"
+                
                 data = {
                     "page_name": title,
                     "facebook_url": self.link,
-                    "phone_numbers": contact_info.get("phones", ""),
-                    "emails": contact_info.get("emails", ""),
-                    "websites": contact_info.get("websites", ""),
-                    "followers": followers
+                    "phone_numbers": phone_number,
+                    "emails": email,
+                    "websites": website,
+                    "followers": followers,
+                    "grade":grade
                 }
 
                 self.logger.info(f"Scraped data: {data}")
                 self.log_list.put(f"Scraped data: {data}")
-                return data
+                return data if grade != "F" else None
 
             except Exception as e:
                 self.logger.error(f"Error scraping {self.link}: {e}")
@@ -172,7 +192,12 @@ class FacebookPageInfoScraper:
 
 def process_csv_and_scrape(data_directory:str,logger,log_list):
     # Read input CSV with pandas
-    df_input = pd.read_csv(f"{data_directory}/links.csv")
+    try:
+        df_input = pd.read_csv(f"{data_directory}/links.csv")
+    except pd.errors.EmptyDataError:
+        logger.info(f"There are no new links scraped so ending session.")
+        log_list.put(f"There are no new links scraped so ending session.")
+        exit()
 
     # Define output structure
     output_data = []
@@ -193,14 +218,20 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
             output_data.append(scraped_data)
 
     # Create DataFrame from scraped output
-    df_output = pd.DataFrame(output_data, columns=[
-        'page_name', 'facebook_url', 'phone_numbers',
-        'emails', 'websites', 'followers'
-    ])
+    df_output = pd.DataFrame(output_data)
+    df_output.sort_values(by="grade", inplace=True)
 
     # Write to output CSV
     df_output.to_csv(f"{data_directory}/leads.csv", index=False, encoding='utf-8')
     df_output.to_excel(f"{data_directory}/leads.xlsx", index=False)
+
+    if os.path.exists(ALL_LEADS_CSV):
+        all_leads = pd.read_csv(ALL_LEADS_CSV)
+        combined_df = pd.concat([all_leads, df_output]).drop_duplicates(subset=["facebook_url"])
+    else:
+        combined_df = df_output
+    combined_df.to_csv(ALL_LEADS_CSV, index=False)
+    combined_df.to_excel(ALL_LEADS_XLSX, index=False)
 
     logger.info(f"Done .... Scraped {len(df_output)} leads.")
     log_list.put(f"Done .... Scraped {len(df_output)} leads.")

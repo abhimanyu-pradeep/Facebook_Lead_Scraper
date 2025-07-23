@@ -6,7 +6,8 @@ from playwright.sync_api import sync_playwright
 
 # === Configuration ===
 COUNTRY_CODE = "IN"
-SCRAPED_PAGES_CSV = "all_llinks.csv"
+SCRAPED_PAGES_CSV = "all_links.csv"
+SCRAPED_LEADS_CSV = "all_leads.csv"
 SCROLL_DELAY_MS = 3000
 
 # === Phase 1: Scrape Page Links with Continuous Scrolling ===
@@ -78,11 +79,11 @@ def run_scrape_page_links(search_keyword, data_directory, logger, log_list, star
     log_list.put("Starting Phase 1: Scrape Facebook Page Links...")
 
     # Load existing links
-    if os.path.exists(SCRAPED_PAGES_CSV):
-        existing_df = pd.read_csv(SCRAPED_PAGES_CSV)
-        existing_links = set(existing_df["Page Link"].dropna().unique())
-        logger.info(f"Loaded {len(existing_links)} existing links from {SCRAPED_PAGES_CSV}.")
-        log_list.put(f"Loaded {len(existing_links)} existing links from {SCRAPED_PAGES_CSV}.")
+    if os.path.exists(SCRAPED_LEADS_CSV):
+        existing_df = pd.read_csv(SCRAPED_LEADS_CSV)
+        existing_links = set(existing_df["facebook_url"].dropna()) #Removed unique
+        logger.info(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
+        log_list.put(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
     else:
         existing_df = pd.DataFrame()
         existing_links = set()

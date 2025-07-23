@@ -16,7 +16,7 @@ def scrape_meta_ads_page_links(search_keyword, country,logger, log_list, start_d
         existing_links = set()
 
     with sync_playwright() as p:
-        browser = p.firefox.launch(headless=False)
+        browser = p.firefox.launch(headless=True)
         page = browser.new_page()
 
         search_query = search_keyword.replace(" ", "%20")
@@ -132,4 +132,4 @@ if __name__ == "__main__":
     start_date_min = input("Enter start date min (YYYY-MM-DD) [press Enter to skip]: ").strip() or None
     start_date_max = input("Enter start date max (YYYY-MM-DD) [press Enter to skip]: ").strip() or None
 
-    run_scrape_page_links(search_keyword, start_date_min, start_date_max, data_directory= "test_data")
+    run_scrape_page_links(search_keyword=search_keyword, start_date_min=start_date_min, start_date_max=start_date_max, data_directory= "test_data")

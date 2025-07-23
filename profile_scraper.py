@@ -62,7 +62,7 @@ class FacebookPageInfoScraper:
 
     def scrape(self):
         with sync_playwright() as p:
-            browser = p.firefox.launch(headless=False, proxy={"server": self.proxy} if self.proxy else None)
+            browser = p.firefox.launch(headless=True, proxy={"server": self.proxy} if self.proxy else None)
             context = browser.new_context()
             page = context.new_page()
 

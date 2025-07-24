@@ -3,3 +3,4 @@ lookups/
 __pycache__/
 data/
 *.xlsx
+archive/

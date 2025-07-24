@@ -65,7 +65,7 @@ def scrape_meta_ads_page_links(search_keyword, country,logger, log_list, start_d
             if new_height == previous_height:
                 logger.info("Reached end of page.")
                 log_list.put("Reached end of page.")
-                break
+                break 
             previous_height = new_height
 
         logger.info(f"Skipped {skipped} already-known links.")
@@ -100,6 +100,7 @@ def run_scrape_page_links(search_keyword, data_directory, logger, log_list, star
         logger = logger,
         log_list = log_list
     )
+
     logger.info(f"Scraped {len(links_data)} new unique page links.")
     log_list.put(f"Scraped {len(links_data)} new unique page links.")
 
@@ -125,11 +126,3 @@ def run_scrape_page_links(search_keyword, data_directory, logger, log_list, star
     else:
         logger.info("No new links to add.")
         log_list.put("No new links to add.")
-
-# === Prompt Entry Point ===
-if __name__ == "__main__":
-    search_keyword = input("Enter search keyword (e.g. 'Whatsapp Kerala'): ").strip()
-    start_date_min = input("Enter start date min (YYYY-MM-DD) [press Enter to skip]: ").strip() or None
-    start_date_max = input("Enter start date max (YYYY-MM-DD) [press Enter to skip]: ").strip() or None
-
-    run_scrape_page_links(search_keyword=search_keyword, start_date_min=start_date_min, start_date_max=start_date_max, data_directory= "test_data")

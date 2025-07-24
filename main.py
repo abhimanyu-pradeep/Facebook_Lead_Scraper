@@ -5,6 +5,7 @@ import os
 import streamlit as st
 import threading
 import zipfile
+import matplotlib
 
 from profile_scraper import process_csv_and_scrape, setup_logger
 from ad_scraper import run_scrape_page_links
@@ -16,10 +17,11 @@ import queue
 
 
 def run_session():
-    global folder_name
+    global folder_name, archive_name
     now = dt.now()
     timestamp = now.strftime("%d-%m-%y | %H:%M")
     folder_name = f"data/session_{timestamp}"
+    archive_name = f"session_{timestamp}"
     os.makedirs(folder_name, exist_ok=True)
     logger = setup_logger(f"{folder_name}/scraper.log")
 
@@ -44,9 +46,11 @@ with st.sidebar:
     end_date = st.date_input("End Date", date.today())
     start_button = st.button("Search")
 
+pie_column, legend_column = st.columns(2)
+with pie_column:
     pie_placeholder = st.empty()
+with legend_column:
     pie_legend = st.empty()
-
 # Placeholder for logs
 log_placeholder = st.empty()
 
@@ -83,9 +87,10 @@ if start_button:
                 render_logs(logs_to_render)
             except queue.Empty:
                 pass
-            if not threading.active_count() > 1:  # Only one background thread running
+            if not threading.active_count() > 5:  # Only one background thread running
                 render_logs(["Done ... ",])
                 break
+            
             time.sleep(0.6)
         
         csv_path = os.path.join(folder_name,"leads.csv")
@@ -93,12 +98,12 @@ if start_button:
             df = pd.read_csv(csv_path)
 
             st.subheader("Generated Leads Preview")
-            st.dataframe(df.head(n = 10))
+            st.dataframe(df.head())
 
             if "grade" in df.columns:
                 grade_counts = df["grade"].value_counts()
                 pie_placeholder.pyplot(
-                    grade_counts.plot.pie(autopct="%1.1f%%", figsize=(4, 4), title="Grade Distribution").figure
+                    grade_counts.plot.pie(autopct="%1.1f%%", figsize=(6, 6), title="Grade Distribution").figure
                 )
                 pie_legend.markdown(
                     "**Legend:**\n\n"
@@ -107,13 +112,10 @@ if start_button:
                     "- Grade C: Has Phone only\n"
                     "- Grade D: Has only Email and Website\n"
                     "- Grade E: Has either of Email or Website\n"
-                ) 
-
-        else:
-            df = pd.read_csv(csv_path) 
+                )
 
             # ---- Zip & Download ----
-            zip_path = os.path.join(f"{folder_name}", "session_output.zip")
+            zip_path = os.path.join("archive", f"{archive_name}.zip")
             with zipfile.ZipFile(zip_path, 'w') as zipf:
                 for file in os.listdir(f"{folder_name}"):
                     file_path = os.path.join(f"{folder_name}", file)
@@ -121,7 +123,7 @@ if start_button:
 
             with open(zip_path, "rb") as f:
                 st.download_button(
-                    label="📦 Download Session ZIP",
+                    label="Download Session ZIP",
                     data=f,
                     file_name="session_output.zip",
                     mime="application/zip"

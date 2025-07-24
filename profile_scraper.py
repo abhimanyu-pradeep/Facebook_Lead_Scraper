@@ -106,6 +106,7 @@ class FacebookPageInfoScraper:
 
                 self.logger.info(f"Scraped data: {data}")
                 self.log_list.put(f"Scraped data: {data}")
+                
                 return data if grade != "F" else None
 
             except Exception as e:
@@ -165,31 +166,6 @@ class FacebookPageInfoScraper:
             "websites": ", ".join(websites)
         }
 
-
-# async def process_csv_and_scrape(input_csv, output_csv):
-#     with open(input_csv, newline='', encoding='utf-8') as infile:
-#         reader = list(csv.DictReader(infile))
-
-#     fieldnames = ['page_name', 'facebook_url', 'phone_numbers', 'emails', 'websites', 'followers']
-
-#     with open(output_csv, 'w', newline='', encoding='utf-8') as outfile:
-#         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-#         writer.writeheader()
-
-#         for row in reader:
-#             url = row.get('Page Link', '').strip()
-#             if not url:
-#                 continue
-
-#             logger.info(f"Scraping URL: {url}")
-#             proxy = get_random_proxy()
-
-#             scraper = FacebookPageInfoScraper(url, proxy)
-#             scraped_data = await scraper.scrape()
-
-#             if scraped_data:
-#                 writer.writerow(scraped_data)
-
 def process_csv_and_scrape(data_directory:str,logger,log_list):
     # Read input CSV with pandas
     try:
@@ -216,7 +192,7 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
 
         if scraped_data:
             output_data.append(scraped_data)
-
+        
     # Create DataFrame from scraped output
     df_output = pd.DataFrame(output_data)
     df_output.sort_values(by="grade", inplace=True)
@@ -235,15 +211,3 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
 
     logger.info(f"Done .... Scraped {len(df_output)} leads.")
     log_list.put(f"Done .... Scraped {len(df_output)} leads.")
-
-
-if __name__ == "__main__":
-    input_file = "scraped_updated_links_21_07.csv"
-    output_file = "scraped_facebook_pages_2_21_07.csv"
-
-    logger=setup_logger()
-    if not os.path.exists(input_file):
-        logger.error(f"Input file '{input_file}' not found.")
-    else:
-        asyncio.run(process_csv_and_scrape(input_file, output_file))
-        logger.info("Scraping process completed.")

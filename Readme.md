@@ -33,7 +33,7 @@ docker run -p 8501:8501 -v "$PWD/all_links.csv":/app/all_links.csv -v \
 -v "$PWD/all_leads.csv":/app/all_leads.csv \
 -v "$PWD/data":/app/data \
 -v "$PWD/archive":/app/archive
-streamlit_app
+lead_generator
 ```
 
 For Windows users:
@@ -49,4 +49,4 @@ docker run -p 8501:8501 `
   -v "${PWD}/all_leads.csv:/app/all_leads.csv" `
   -v "${PWD}/data:/app/data" `
   -v "${PWD}/archive:/app/archive" `
-  streamlit_app
+  lead_generator

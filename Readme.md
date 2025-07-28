@@ -32,7 +32,7 @@ docker run -p 8501:8501 -v "$PWD/all_links.csv":/app/all_links.csv -v \
 "$PWD/all_leads.xlsx":/app/all_leads.xlsx \
 -v "$PWD/all_leads.csv":/app/all_leads.csv \
 -v "$PWD/data":/app/data \
--v "$PWD/archives":/app/archives 
+-v "$PWD/archive":/app/archive
 streamlit_app
 ```
 
@@ -48,5 +48,5 @@ docker run -p 8501:8501 `
   -v "${PWD}/all_leads.xlsx:/app/all_leads.xlsx" `
   -v "${PWD}/all_leads.csv:/app/all_leads.csv" `
   -v "${PWD}/data:/app/data" `
-  -v "${PWD}/data:/app/archives" `
+  -v "${PWD}/archive:/app/archive" `
   streamlit_app

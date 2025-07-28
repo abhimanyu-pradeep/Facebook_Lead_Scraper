@@ -34,3 +34,19 @@ docker run -p 8501:8501 -v "$PWD/all_links.csv":/app/all_links.csv -v \
 -v "$PWD/data":/app/data \
 -v "$PWD/archives":/app/archives 
 streamlit_app
+```
+
+For Windows users:
+
+```bash
+#Build the image
+docker build -t lead_generator .
+
+#Run the container with the volumes mounted for retrieving the data
+docker run -p 8501:8501 `
+  -v "${PWD}/all_links.csv:/app/all_links.csv" `
+  -v "${PWD}/all_leads.xlsx:/app/all_leads.xlsx" `
+  -v "${PWD}/all_leads.csv:/app/all_leads.csv" `
+  -v "${PWD}/data:/app/data" `
+  -v "${PWD}/data:/app/archives" `
+  streamlit_app

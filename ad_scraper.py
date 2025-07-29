@@ -79,15 +79,16 @@ def run_scrape_page_links(country_code,search_keyword, data_directory, logger, l
 
     # Load existing links
     if os.path.exists(SCRAPED_LEADS_CSV):
-        existing_df = pd.read_csv(SCRAPED_LEADS_CSV)
-        existing_links = set(existing_df["facebook_url"].dropna()) #Removed unique
-        logger.info(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
-        log_list.put(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
-    else:
-        existing_df = pd.DataFrame()
-        existing_links = set()
-        logger.info("No existing CSV found — starting fresh.")
-        log_list.put("No existing CSV found — starting fresh.")
+        try:
+            existing_df = pd.read_csv(SCRAPED_LEADS_CSV)
+            existing_links = set(existing_df["facebook_url"].dropna()) #Removed unique
+            logger.info(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
+            log_list.put(f"Loaded {len(existing_links)} existing links from {SCRAPED_LEADS_CSV}.")
+        except:
+            existing_df = pd.DataFrame()
+            existing_links = set()
+            logger.info("No existing CSV found — starting fresh.")
+            log_list.put("No existing CSV found — starting fresh.")
 
     # Run scraper
     links_data = scrape_meta_ads_page_links(

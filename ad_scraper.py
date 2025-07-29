@@ -5,13 +5,12 @@ import os
 from playwright.sync_api import sync_playwright
 
 # === Configuration ===
-COUNTRY_CODE = "IN"
 SCRAPED_PAGES_CSV = "all_links.csv"
 SCRAPED_LEADS_CSV = "all_leads.csv"
 SCROLL_DELAY_MS = 3000
 
 # === Phase 1: Scrape Page Links with Continuous Scrolling ===
-def scrape_meta_ads_page_links(search_keyword, country,logger, log_list, start_date_min=None, start_date_max=None, existing_links=None):
+def scrape_meta_ads_page_links(search_keyword, country_code,logger, log_list, start_date_min=None, start_date_max=None, existing_links=None):
     if existing_links is None:
         existing_links = set()
 
@@ -20,7 +19,7 @@ def scrape_meta_ads_page_links(search_keyword, country,logger, log_list, start_d
         page = browser.new_page()
 
         search_query = search_keyword.replace(" ", "%20")
-        search_url = f"https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country={country}&q={search_query}"
+        search_url = f"https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country={country_code}&q={search_query}"
 
         if start_date_min:
             search_url += f"&start_date[min]={start_date_min}"
@@ -74,7 +73,7 @@ def scrape_meta_ads_page_links(search_keyword, country,logger, log_list, start_d
         return advertiser_data
 
 # === Wrapper Function ===
-def run_scrape_page_links(search_keyword, data_directory, logger, log_list, start_date_min=None, start_date_max=None):
+def run_scrape_page_links(country_code,search_keyword, data_directory, logger, log_list, start_date_min=None, start_date_max=None):
     logger.info("Starting Phase 1: Scrape Facebook Page Links...")
     log_list.put("Starting Phase 1: Scrape Facebook Page Links...")
 
@@ -93,7 +92,7 @@ def run_scrape_page_links(search_keyword, data_directory, logger, log_list, star
     # Run scraper
     links_data = scrape_meta_ads_page_links(
         search_keyword=search_keyword,
-        country=COUNTRY_CODE,
+        country_code=country_code,
         start_date_min=start_date_min,
         start_date_max=start_date_max,
         existing_links=existing_links,

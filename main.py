@@ -25,7 +25,7 @@ def run_session():
     os.makedirs(folder_name, exist_ok=True)
     logger = setup_logger(f"{folder_name}/scraper.log")
 
-    run_scrape_page_links(search_keyword=search_keyword, start_date_min=start_date,
+    run_scrape_page_links(country_code,search_keyword=search_keyword, start_date_min=start_date,
                            start_date_max=end_date, data_directory= folder_name,logger = logger,log_list = log_lines)
     
     links_path = os.path.join(folder_name,"links.csv")
@@ -35,15 +35,28 @@ def run_session():
     process_csv_and_scrape(data_directory=folder_name,logger=logger,log_list=log_lines)
 
 
-st.set_page_config(page_title="Meta Ads Library Search", layout="centered")
+st.set_page_config(page_title="LeadSphere", layout="centered")
 
-st.title("Search Through Facebook Pages")
+st.title("LeadSphere")
+
+st.markdown('''
+    This tool enables you to:
+
+    - Search for *Prospects* by keyword, location, and country
+    - Access contact info (email, phone, website) of specific prospects
+    - Grade leads by data richness (A: full contact info → F: none)
+    - View visual summaries and filter by lead quality
+    - Export organized Excel files and download session archives''')
 
 with st.sidebar:
     # Inputs
-    search_keyword = st.text_input("Enter text query")
+    search_keyword = st.text_input("Enter Search Keyword")
     start_date = st.date_input("Start Date", date.today())
     end_date = st.date_input("End Date", date.today())
+    country_code=st.selectbox(
+    "Select Country:",
+    ["IN", "US", "UK", "UAE"])
+
     start_button = st.button("Search")
 
 pie_column, legend_column = st.columns(2)
@@ -76,7 +89,7 @@ def render_logs(log_lines):
 
 if start_button:
     if not search_keyword:
-        st.warning("Please enter a query.")
+        st.warning("Please enter Search Keyword.")
     else:
         log_lines = queue.Queue()
         threading.Thread(target=run_session,daemon=True).start()
@@ -93,7 +106,7 @@ if start_button:
             
             time.sleep(0.6)
         
-        csv_path = os.path.join(folder_name,"leads.csv")
+        csv_path = os.path.join(folder_name,"leads_final.csv")
         if os.path.exists(csv_path):
             df = pd.read_csv(csv_path)
 
@@ -107,9 +120,9 @@ if start_button:
                 )
                 pie_legend.markdown(
                     "**Legend:**\n\n"
-                    "- Grade A: Has Phone, Email, Website\n"
-                    "- Grade B: Has Phone and one of Email, Website\n"
-                    "- Grade C: Has Phone only\n"
+                    "- Grade A: Has Phone,Whatsapp, Email, Website\n"
+                    "- Grade B: Has either Phone or Whatsapp and one of Email, Website\n"
+                    "- Grade C: Has Phone or Whatsapp only\n"
                     "- Grade D: Has only Email and Website\n"
                     "- Grade E: Has either of Email or Website\n"
                 )

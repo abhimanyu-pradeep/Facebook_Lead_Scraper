@@ -73,19 +73,22 @@ class FacebookPageInfoScraper:
                 page.wait_for_selector("body", timeout=10000)
                 self._close_login_popup(page)
 
-                contact_info = self._extract_intro_section_info(page)
+                intro_info = self._extract_intro_section_info(page)
 
                 title = (page.title()).replace(" | Facebook", "").strip()
                 followers = self._fetch_followers_count(page)
-                website = contact_info.get("websites", None)
-                email = contact_info.get("emails", None)
-                phone_number = contact_info.get("phones", None)
-
-                if phone_number and email and website:
+                website = intro_info["websites"]
+                email = intro_info["emails"]
+                phone_number =intro_info["phone_numbers"]
+                address=intro_info["address"]
+                intro_desc=intro_info["intro_description"]
+                whatsapp_numbers=intro_info["whatsapp_numbers"]
+                
+                if phone_number and email and website and whatsapp_numbers:
                     grade = "A"
-                elif phone_number and (email or website):
+                elif (phone_number or whatsapp_numbers) and (email or website):
                     grade = "B"
-                elif phone_number:
+                elif phone_number or whatsapp_numbers:
                     grade = "C"
                 elif email and website:
                     grade = "D"
@@ -98,8 +101,11 @@ class FacebookPageInfoScraper:
                     "page_name": title,
                     "facebook_url": self.link,
                     "phone_numbers": phone_number,
+                    "whatsapp_numbers":whatsapp_numbers,
                     "emails": email,
                     "websites": website,
+                    "address":address,
+                    "intro_desc":intro_desc,
                     "followers": followers,
                     "grade":grade
                 }
@@ -137,35 +143,71 @@ class FacebookPageInfoScraper:
                 return text.strip()
         return ""
 
-    def _extract_intro_section_info(self, page):
-        phones, emails, websites = set(), set(), set()
+    def _extract_intro_section_info(self,page):
+        #phones, emails, websites = set(), set(), set()
+        icons_map = {
+            "phone": "Dc7-7AgwkwS.png",
+            "whatsapp": "lnfZfe30sq0.png",
+            "email": "2PIcyqpptfD.png",
+            "website": "BQdeC67wT9z.png",
+            "address": "8k_Y-oVxbuU.png"
+        }
+        info = {"phone_numbers": "", 
+                "whatsapp_numbers": "",
+                "emails": "",
+                "websites": "", 
+                "grade": "",
+                "address": "", 
+                "intro_description": ""}
         try:
-            elements = page.query_selector_all("span.x193iq5w[dir='auto']")
+            elements = page.query_selector_all("div[class*='x1ja2u2z']")
             self.logger.debug(f"Found {len(elements)} intro section span elements.")
             self.log_list.put(f"Found {len(elements)} intro section span elements.")
 
-            for el in elements:
-                text = (el.inner_text()).strip()
+            for i, el in enumerate(elements):
+                try:
+                    img_tag = el.query_selector("img")
+                    if not img_tag:
+                        continue
+                    src = img_tag.get_attribute("src")
+                    next_div = elements[i + 1]
 
-                if re.fullmatch(r"[\d\s]{7,}", text):
-                    phones.add(text)
+                    if icons_map["phone"] in src:
+                        info["phone_numbers"] = next_div.inner_text().strip()
 
-                if re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text):
-                    emails.add(text)
+                    elif icons_map["whatsapp"] in src:
+                        info["whatsapp_numbers"] = next_div.inner_text().strip()
 
-                if re.fullmatch(r"(?!.*facebook\.com)[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text):
-                    websites.add(text)
+                    elif icons_map["email"] in src:
+                        info["emails"] = next_div.inner_text().strip()
 
+                    elif icons_map["website"] in src:
+                        try:
+                            a = next_div.query_selector("a")
+                            if a:
+                                info["websites"] = a.inner_text().strip()
+                            else:
+                                info["websites"] = next_div.inner_text().strip()
+                        except:
+                            info["websites"] = next_div.inner_text().strip()
+
+                    elif icons_map["address"] in src:
+                        info["address"] = next_div.inner_text().strip()
+
+                except Exception:
+                    continue
+
+            try:
+                intro_desc_elem = page.query_selector("div[class*='x2b8uid'] span")
+                if intro_desc_elem:
+                    info["intro_description"] = intro_desc_elem.inner_text().strip()
+            except Exception as e:
+                self.logger.warning(f"Intro description fallback failed: {e}")
         except Exception as e:
             self.logger.warning(f"Intro section scraping issue: {e}")
             self.log_list.put(f"Intro section scraping issue: {e}")
-
-        return {
-            "phones": ", ".join(phones),
-            "emails": ", ".join(emails),
-            "websites": ", ".join(websites)
-        }
-
+        return info
+    
 def process_csv_and_scrape(data_directory:str,logger,log_list):
     # Read input CSV with pandas
     try:
@@ -192,22 +234,33 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
 
         if scraped_data:
             output_data.append(scraped_data)
-        
+
+    if len(output_data)!=0:
+
     # Create DataFrame from scraped output
-    df_output = pd.DataFrame(output_data)
-    df_output.sort_values(by="grade", inplace=True)
+        df_output = pd.DataFrame(output_data)
 
-    # Write to output CSV
-    df_output.to_csv(f"{data_directory}/leads.csv", index=False, encoding='utf-8')
-    df_output.to_excel(f"{data_directory}/leads.xlsx", index=False)
+        df_output_final=pd.DataFrame(output_data)
+        df_output.sort_values(by="grade", inplace=True)
+        filtered_columns = ['Business_Name', 'phone_numbers','whatsapp_numbers', 'emails', 'websites','address', 'grade']
+        available_columns = [col for col in filtered_columns if col in df_output_final.columns]
+        df_filtered=df_output_final[available_columns]
+        # Write to output CSV
+        df_filtered.to_csv(f"{data_directory}/leads_final.csv", index=False, encoding='utf-8')
+        df_output.to_csv(f"{data_directory}/leads.csv", index=False, encoding='utf-8')
+        df_output.to_excel(f"{data_directory}/leads.xlsx", index=False)
+        df_filtered.to_excel(f"{data_directory}/leads_final.xlsx", index=False)
 
-    if os.path.exists(ALL_LEADS_CSV):
-        all_leads = pd.read_csv(ALL_LEADS_CSV)
-        combined_df = pd.concat([all_leads, df_output]).drop_duplicates(subset=["facebook_url"])
+        if os.path.exists(ALL_LEADS_CSV):
+            all_leads = pd.read_csv(ALL_LEADS_CSV)
+            combined_df = pd.concat([all_leads, df_output]).drop_duplicates(subset=["facebook_url"])
+        else:
+            combined_df = df_output
+        combined_df.to_csv(ALL_LEADS_CSV, index=False)
+        combined_df.to_excel(ALL_LEADS_XLSX, index=False)
+
+        logger.info(f"Done .... Scraped {len(df_output)} leads.")
+        log_list.put(f"Done .... Scraped {len(df_output)} leads.")
     else:
-        combined_df = df_output
-    combined_df.to_csv(ALL_LEADS_CSV, index=False)
-    combined_df.to_excel(ALL_LEADS_XLSX, index=False)
-
-    logger.info(f"Done .... Scraped {len(df_output)} leads.")
-    log_list.put(f"Done .... Scraped {len(df_output)} leads.")
+        logger.info(f"No Quality Leads found:( ")
+        log_list.put(f"No Quality Leads found:( ")

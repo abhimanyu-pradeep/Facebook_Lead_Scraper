@@ -11,6 +11,8 @@ from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeo
 import colorlog
 import logging
 
+from classifier_llm import classify
+
 ALL_LEADS_CSV = "all_leads.csv"
 ALL_LEADS_XLSX = "all_leads.xlsx"
 
@@ -83,6 +85,8 @@ class FacebookPageInfoScraper:
                 address=intro_info["address"]
                 intro_desc=intro_info["intro_description"]
                 whatsapp_numbers=intro_info["whatsapp_numbers"]
+
+                category = classify(intro_desc if intro_desc else title)
                 
                 if phone_number and email and website and whatsapp_numbers:
                     grade = "A"
@@ -98,7 +102,8 @@ class FacebookPageInfoScraper:
                     grade = "F"
                 
                 data = {
-                    "page_name": title,
+                    "Business_Name": title,
+                    "category":category,
                     "facebook_url": self.link,
                     "phone_numbers": phone_number,
                     "whatsapp_numbers":whatsapp_numbers,
@@ -242,7 +247,8 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
 
         df_output_final=pd.DataFrame(output_data)
         df_output.sort_values(by="grade", inplace=True)
-        filtered_columns = ['Business_Name', 'phone_numbers','whatsapp_numbers', 'emails', 'websites','address', 'grade']
+
+        filtered_columns = ['Business_Name', 'category', 'phone_numbers','whatsapp_numbers', 'emails', 'websites','address', 'grade']
         available_columns = [col for col in filtered_columns if col in df_output_final.columns]
         df_filtered=df_output_final[available_columns]
         # Write to output CSV

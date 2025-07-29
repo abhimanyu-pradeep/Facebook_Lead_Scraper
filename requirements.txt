@@ -5,3 +5,5 @@ matplotlib
 playwright
 colorlog
 openpyxl
+dotenv
+openai

@@ -258,10 +258,11 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
         df_filtered.to_excel(f"{data_directory}/leads_final.xlsx", index=False)
 
         if os.path.exists(ALL_LEADS_CSV):
-            all_leads = pd.read_csv(ALL_LEADS_CSV)
-            combined_df = pd.concat([all_leads, df_output]).drop_duplicates(subset=["facebook_url"])
-        else:
-            combined_df = df_output
+            try:
+                all_leads = pd.read_csv(ALL_LEADS_CSV)
+                combined_df = pd.concat([all_leads, df_output]).drop_duplicates(subset=["facebook_url"])
+            except:
+                combined_df = df_output
         combined_df.to_csv(ALL_LEADS_CSV, index=False)
         combined_df.to_excel(ALL_LEADS_XLSX, index=False)
 

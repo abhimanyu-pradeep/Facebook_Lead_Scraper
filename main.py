@@ -46,6 +46,7 @@ st.markdown('''
     - Access contact info (email, phone, website) of specific prospects
     - Grade leads by data richness (A: full contact info → F: none)
     - View visual summaries and filter by lead quality
+    - Leads are Enriched with information about the prospect and Sales Insights using AI
     - Export organized Excel files and download session archives''')
 
 with st.sidebar:

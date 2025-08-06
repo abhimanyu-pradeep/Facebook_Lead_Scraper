@@ -5,3 +5,4 @@ data/
 *.xlsx
 archive/
 .env
+database/

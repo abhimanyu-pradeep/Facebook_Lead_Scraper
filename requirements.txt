@@ -7,3 +7,6 @@ colorlog
 openpyxl
 dotenv
 openai
+bs4
+requests
+readability-lxml

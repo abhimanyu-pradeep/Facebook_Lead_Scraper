@@ -12,6 +12,7 @@ import colorlog
 import logging
 
 from classifier_llm import classify
+from classifier_llm import enrich_lead
 
 ALL_LEADS_CSV = "all_leads.csv"
 ALL_LEADS_XLSX = "all_leads.xlsx"
@@ -87,7 +88,14 @@ class FacebookPageInfoScraper:
                 whatsapp_numbers=intro_info["whatsapp_numbers"]
 
                 category = classify(intro_desc if intro_desc else title)
-                
+                if intro_desc:
+                    enrichment=enrich_lead(intro_desc,website)
+                    website_summary=enrichment["website_summary"]
+                    sales_insight=enrichment["sales_insight"]
+                else:
+                    website_summary=""
+                    sales_insight=""
+
                 if phone_number and email and website and whatsapp_numbers:
                     grade = "A"
                 elif (phone_number or whatsapp_numbers) and (email or website):
@@ -112,7 +120,9 @@ class FacebookPageInfoScraper:
                     "address":address,
                     "intro_desc":intro_desc,
                     "followers": followers,
-                    "grade":grade
+                    "grade":grade,
+                    "website_summary":website_summary,
+                    "sales_insight":sales_insight
                 }
 
                 self.logger.info(f"Scraped data: {data}")
@@ -248,7 +258,7 @@ def process_csv_and_scrape(data_directory:str,logger,log_list):
         df_output_final=pd.DataFrame(output_data)
         df_output.sort_values(by="grade", inplace=True)
 
-        filtered_columns = ['Business_Name', 'category', 'phone_numbers','whatsapp_numbers', 'emails', 'websites','address', 'grade']
+        filtered_columns = ['Business_Name', 'category', 'phone_numbers','whatsapp_numbers', 'emails', 'websites','address', 'grade',"website_summary","sales_insight"]
         available_columns = [col for col in filtered_columns if col in df_output_final.columns]
         df_filtered=df_output_final[available_columns]
         # Write to output CSV
